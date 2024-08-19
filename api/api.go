@@ -8,11 +8,11 @@ import (
 )
 
 func NewHandler() http.Handler {
-	mux := chi.NewMux()
+	router := chi.NewRouter()
 
-	mux.Use(middleware.Recoverer)
-	mux.Use(middleware.RequestID)
-	mux.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
 
-	return mux
+	return router
 }
