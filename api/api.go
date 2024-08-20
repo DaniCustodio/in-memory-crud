@@ -20,6 +20,10 @@ type User struct {
 	Biography string
 }
 
+func (u User) isEmpty() bool {
+	return u == User{}
+}
+
 type CreateUserBody struct {
 	FirstName string `json:"first_name" validate:"required,min=2,max=20"`
 	LastName  string `json:"last_name" validate:"required,min=2,max=20"`
