@@ -1,7 +1,9 @@
 package database
 
 import (
+	"fmt"
 	"main/api"
+	"sync"
 	"testing"
 
 	"github.com/google/uuid"
@@ -92,4 +94,48 @@ func TestInMemoryDB(t *testing.T) {
 			t.Fatalf("expected the user to be %v, got %v", updatedUser, got)
 		}
 	})
+
+	t.Run("update a user that does not exist", func(t *testing.T) {
+		db := NewInMemoryDB()
+
+		user := users[0]
+
+		updatedUser := users[1]
+
+		_, err := db.Update(user.ID, updatedUser)
+
+		if err != ErrUserDoesNotExist {
+			t.Fatalf("expected the error to be %v, got %v", ErrUserDoesNotExist, err)
+		}
+	})
+}
+
+func TestConcurrent(t *testing.T) {
+	db := NewInMemoryDB()
+
+	var wg sync.WaitGroup
+	numRoutines := 100
+
+	for i := 0; i < numRoutines; i++ {
+		wg.Add(1)
+
+		go func(i int) {
+			defer wg.Done()
+			key := api.ID(uuid.New())
+			db.Insert(key, api.User{
+				ID:        key,
+				FirstName: fmt.Sprintf("John%d", i),
+				LastName:  "Doe",
+				Biography: "A simple guy who loves to write code and play games. He is a fan of technology and loves to read about new things.",
+			})
+		}(i)
+	}
+
+	wg.Wait()
+
+	users := db.FindAll()
+
+	if len(users) != numRoutines {
+		t.Fatalf("expected the number of users to be %d, got %d", numRoutines, len(users))
+	}
 }

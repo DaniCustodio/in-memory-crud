@@ -6,6 +6,8 @@ import (
 	"sync"
 )
 
+var ErrUserDoesNotExist = errors.New("user does not exist")
+
 type InMemoryDB struct {
 	mu   sync.RWMutex
 	data map[api.ID]api.User
@@ -28,7 +30,7 @@ func (db *InMemoryDB) Update(id api.ID, updatedUser api.User) (api.User, error) 
 	defer db.mu.Unlock()
 
 	if _, exists := db.data[id]; !exists {
-		return api.User{}, errors.New("user does not exist")
+		return api.User{}, ErrUserDoesNotExist
 	}
 
 	db.data[id] = updatedUser
