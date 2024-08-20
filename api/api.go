@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
@@ -20,15 +21,18 @@ type User struct {
 }
 
 type CreateUserBody struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Biography string `json:"biography"`
+	FirstName string `json:"first_name" validate:"required,min=2,max=20"`
+	LastName  string `json:"last_name" validate:"required,min=2,max=20"`
+	Biography string `json:"biography" validate:"required,min=20,max=450"`
 }
 
 type Response struct {
-	Error string `json:"error,omitempty"`
-	Data  any    `json:"data,omitempty"`
+	Message string `json:"message,omitempty"`
+	Data    any    `json:"data,omitempty"`
 }
+
+// WithRequiredStructEnabled: opt-in to new behavior that will become the default behavior in v11+
+var validate = validator.New(validator.WithRequiredStructEnabled())
 
 func NewHandler() http.Handler {
 	router := chi.NewRouter()
@@ -48,7 +52,16 @@ func handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sendJSON(
 			w,
-			Response{Error: "could not decode the request"},
+			Response{Message: "could not decode the request"},
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	if err := validate.Struct(&body); err != nil {
+		sendJSON(
+			w,
+			Response{Message: "Please provide a valid FirstName, LastName and Bio for the user"},
 			http.StatusBadRequest,
 		)
 		return
@@ -63,7 +76,6 @@ func handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: save the user to the database
-	// TODO: return the user in the response
 
 	sendJSON(
 		w,
@@ -80,7 +92,7 @@ func sendJSON(w http.ResponseWriter, resp Response, status int) {
 		slog.Error("could not marshal the response", "error", err)
 		sendJSON(
 			w,
-			Response{Error: "internal server error"},
+			Response{Message: "internal server error"},
 			http.StatusInternalServerError,
 		)
 		return
