@@ -8,16 +8,25 @@ import (
 )
 
 func TestInMemoryDB(t *testing.T) {
-
-	t.Run("save a user and find by id", func(t *testing.T) {
-		db := NewInMemoryDB()
-
-		user := api.User{
+	users := []api.User{
+		{
 			ID:        api.ID(uuid.New()),
 			FirstName: "John",
 			LastName:  "Doe",
 			Biography: "A simple guy who loves to write code and play games. He is a fan of technology and loves to read about new things.",
-		}
+		},
+		{
+			ID:        api.ID(uuid.New()),
+			FirstName: "Jane",
+			LastName:  "Doe",
+			Biography: "A nice lady who loves to write code and play games. She is a fan of technology and loves to read about new things.",
+		},
+	}
+
+	t.Run("save a user and find by id", func(t *testing.T) {
+		db := NewInMemoryDB()
+
+		user := users[0]
 
 		db.Insert(user.ID, user)
 
@@ -35,21 +44,6 @@ func TestInMemoryDB(t *testing.T) {
 	t.Run("find all users", func(t *testing.T) {
 		db := NewInMemoryDB()
 
-		users := []api.User{
-			{
-				ID:        api.ID(uuid.New()),
-				FirstName: "John",
-				LastName:  "Doe",
-				Biography: "A simple guy who loves to write code and play games. He is a fan of technology and loves to read about new things.",
-			},
-			{
-				ID:        api.ID(uuid.New()),
-				FirstName: "Jane",
-				LastName:  "Doe",
-				Biography: "A nice lady who loves to write code and play games. She is a fan of technology and loves to read about new things.",
-			},
-		}
-
 		for _, user := range users {
 			db.Insert(user.ID, user)
 		}
@@ -64,12 +58,7 @@ func TestInMemoryDB(t *testing.T) {
 	t.Run("delete a user", func(t *testing.T) {
 		db := NewInMemoryDB()
 
-		user := api.User{
-			ID:        api.ID(uuid.New()),
-			FirstName: "John",
-			LastName:  "Doe",
-			Biography: "A simple guy who loves to write code and play games. He is a fan of technology and loves to read about new things.",
-		}
+		user := users[0]
 
 		db.Insert(user.ID, user)
 
@@ -85,21 +74,11 @@ func TestInMemoryDB(t *testing.T) {
 	t.Run("update a user", func(t *testing.T) {
 		db := NewInMemoryDB()
 
-		user := api.User{
-			ID:        api.ID(uuid.New()),
-			FirstName: "John",
-			LastName:  "Doe",
-			Biography: "A simple guy who loves to write code and play games. He is a fan of technology and loves to read about new things.",
-		}
+		user := users[0]
 
 		db.Insert(user.ID, user)
 
-		updatedUser := api.User{
-			ID:        user.ID,
-			FirstName: "Jane",
-			LastName:  "Doe",
-			Biography: "A nice lady who loves to write code and play games. She is a fan of technology and loves to read about new things.",
-		}
+		updatedUser := users[1]
 
 		db.Update(user.ID, updatedUser)
 
