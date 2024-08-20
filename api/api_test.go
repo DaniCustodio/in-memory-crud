@@ -12,8 +12,7 @@ import (
 
 func TestCreateUser(t *testing.T) {
 	t.Run("create a user successfully", func(t *testing.T) {
-		user := User{
-			ID:        ID(uuid.New()),
+		user := CreateUserBody{
 			FirstName: "John",
 			LastName:  "Doe",
 			Biography: "A regular guy",
@@ -38,13 +37,35 @@ func TestCreateUser(t *testing.T) {
 			t.Errorf("expected status 201; got %d", rec.Code)
 		}
 
-		var got User
-		if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		var response Response
+		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
 			t.Fatalf("could not decode the response: %v", err)
 		}
 
-		if got != user {
-			t.Errorf("expected the same user; got %v", got)
+		dataBytes, err := json.Marshal(response.Data)
+		if err != nil {
+			t.Fatalf("could not marshal the data: %v", err)
+		}
+
+		var got User
+		if err := json.Unmarshal(dataBytes, &got); err != nil {
+			t.Fatalf("could not unmarshal the user: %v", err)
+		}
+
+		if got.FirstName != user.FirstName {
+			t.Errorf("expected first name %q; got %q", user.FirstName, got.FirstName)
+		}
+
+		if got.LastName != user.LastName {
+			t.Errorf("expected last name %q; got %q", user.LastName, got.LastName)
+		}
+
+		if got.Biography != user.Biography {
+			t.Errorf("expected biography %q; got %q", user.Biography, got.Biography)
+		}
+
+		if got.ID == ID(uuid.Nil) {
+			t.Error("expected a non-empty ID")
 		}
 
 	})
