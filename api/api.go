@@ -51,7 +51,6 @@ func NewHandler() http.Handler {
 }
 
 func handleCreateUser(w http.ResponseWriter, r *http.Request) {
-	// TODO: validate the request body
 	var body CreateUserBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sendJSON(
