@@ -2,7 +2,6 @@ package database
 
 import (
 	"fmt"
-	"main/api"
 	"sync"
 	"testing"
 
@@ -10,15 +9,13 @@ import (
 )
 
 func TestInMemoryDB(t *testing.T) {
-	users := []api.User{
+	users := []User{
 		{
-			ID:        api.ID(uuid.New()),
 			FirstName: "John",
 			LastName:  "Doe",
 			Biography: "A simple guy who loves to write code and play games. He is a fan of technology and loves to read about new things.",
 		},
 		{
-			ID:        api.ID(uuid.New()),
 			FirstName: "Jane",
 			LastName:  "Doe",
 			Biography: "A nice lady who loves to write code and play games. She is a fan of technology and loves to read about new things.",
@@ -30,9 +27,9 @@ func TestInMemoryDB(t *testing.T) {
 
 		user := users[0]
 
-		db.Insert(user.ID, user)
+		dbUser := db.Insert(user)
 
-		got, exists := db.FindByID(user.ID)
+		got, exists := db.FindByID(dbUser.ID)
 
 		if !exists {
 			t.Fatalf("expected the user to exist in the database")
@@ -47,7 +44,7 @@ func TestInMemoryDB(t *testing.T) {
 		db := NewInMemoryDB()
 
 		for _, user := range users {
-			db.Insert(user.ID, user)
+			db.Insert(user)
 		}
 
 		got := db.FindAll()
@@ -62,11 +59,11 @@ func TestInMemoryDB(t *testing.T) {
 
 		user := users[0]
 
-		db.Insert(user.ID, user)
+		dbUser := db.Insert(user)
 
-		db.Delete(user.ID)
+		db.Delete(dbUser.ID)
 
-		_, exists := db.FindByID(user.ID)
+		_, exists := db.FindByID(dbUser.ID)
 
 		if exists {
 			t.Fatalf("expected the user to be deleted from the database")
@@ -78,13 +75,13 @@ func TestInMemoryDB(t *testing.T) {
 
 		user := users[0]
 
-		db.Insert(user.ID, user)
+		dbUser := db.Insert(user)
 
 		updatedUser := users[1]
 
-		db.Update(user.ID, updatedUser)
+		db.Update(dbUser.ID, updatedUser)
 
-		got, exists := db.FindByID(user.ID)
+		got, exists := db.FindByID(dbUser.ID)
 
 		if !exists {
 			t.Fatalf("expected the user to exist in the database")
@@ -98,11 +95,9 @@ func TestInMemoryDB(t *testing.T) {
 	t.Run("update a user that does not exist", func(t *testing.T) {
 		db := NewInMemoryDB()
 
-		user := users[0]
-
 		updatedUser := users[1]
 
-		_, err := db.Update(user.ID, updatedUser)
+		_, err := db.Update(ID(uuid.New()), updatedUser)
 
 		if err != ErrUserDoesNotExist {
 			t.Fatalf("expected the error to be %v, got %v", ErrUserDoesNotExist, err)
@@ -121,9 +116,7 @@ func TestConcurrent(t *testing.T) {
 
 		go func(i int) {
 			defer wg.Done()
-			key := api.ID(uuid.New())
-			db.Insert(key, api.User{
-				ID:        key,
+			db.Insert(User{
 				FirstName: fmt.Sprintf("John%d", i),
 				LastName:  "Doe",
 				Biography: "A simple guy who loves to write code and play games. He is a fan of technology and loves to read about new things.",

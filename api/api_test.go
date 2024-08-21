@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"main/database"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,11 +12,13 @@ import (
 )
 
 func TestCreateUser(t *testing.T) {
-	requestBody := CreateUserBody{
+	requestBody := database.User{
 		FirstName: "John",
 		LastName:  "Doe",
 		Biography: "A regular guy who loves to code in Go and JavaScript",
 	}
+
+	emptyDBUser := database.DBUser{}
 
 	t.Run("create a user successfully", func(t *testing.T) {
 		rec := makeRequest(t, requestBody)
@@ -25,11 +28,9 @@ func TestCreateUser(t *testing.T) {
 			rec,
 			http.StatusCreated,
 			"",
-			User{
-				ID:        ID(uuid.Nil),
-				FirstName: "John",
-				LastName:  "Doe",
-				Biography: "A regular guy who loves to code in Go and JavaScript",
+			database.DBUser{
+				ID:   database.ID(uuid.New()),
+				User: requestBody,
 			},
 		)
 	})
@@ -45,7 +46,7 @@ func TestCreateUser(t *testing.T) {
 			rec,
 			http.StatusBadRequest,
 			"Please provide a valid FirstName, LastName and Bio for the user",
-			User{},
+			emptyDBUser,
 		)
 	})
 
@@ -60,7 +61,7 @@ func TestCreateUser(t *testing.T) {
 			rec,
 			http.StatusBadRequest,
 			"Please provide a valid FirstName, LastName and Bio for the user",
-			User{},
+			emptyDBUser,
 		)
 	})
 
@@ -75,7 +76,7 @@ func TestCreateUser(t *testing.T) {
 			rec,
 			http.StatusBadRequest,
 			"Please provide a valid FirstName, LastName and Bio for the user",
-			User{},
+			emptyDBUser,
 		)
 	})
 
@@ -90,7 +91,7 @@ func TestCreateUser(t *testing.T) {
 			rec,
 			http.StatusBadRequest,
 			"Please provide a valid FirstName, LastName and Bio for the user",
-			User{},
+			emptyDBUser,
 		)
 	})
 
@@ -105,7 +106,7 @@ func TestCreateUser(t *testing.T) {
 			rec,
 			http.StatusBadRequest,
 			"Please provide a valid FirstName, LastName and Bio for the user",
-			User{},
+			emptyDBUser,
 		)
 	})
 
@@ -120,19 +121,20 @@ func TestCreateUser(t *testing.T) {
 			rec,
 			http.StatusBadRequest,
 			"Please provide a valid FirstName, LastName and Bio for the user",
-			User{},
+			emptyDBUser,
 		)
 	})
 }
 
-func makeRequest(t testing.TB, user CreateUserBody) *httptest.ResponseRecorder {
+func makeRequest(t testing.TB, user database.User) *httptest.ResponseRecorder {
 	t.Helper()
 	payload, err := json.Marshal(user)
 	if err != nil {
 		t.Fatalf("could not marshal the user: %v", err)
 	}
 
-	router := NewHandler()
+	db := database.NewInMemoryDB()
+	router := NewHandler(db)
 
 	req, err := http.NewRequest(http.MethodPost, "/api/users", bytes.NewBuffer(payload))
 	if err != nil {
@@ -150,7 +152,7 @@ func assertResponse(
 	resp *httptest.ResponseRecorder,
 	expectedStatus int,
 	expectedMessage string,
-	expectedData User,
+	expectedData database.DBUser,
 ) {
 	t.Helper()
 	var response Response
@@ -166,21 +168,21 @@ func assertResponse(
 		t.Errorf("expected message %q; got %q", expectedMessage, response.Message)
 	}
 
-	if !expectedData.isEmpty() {
+	if !expectedData.IsEmpty() {
 		dataBytes, err := json.Marshal(response.Data)
 		if err != nil {
 			t.Fatalf("could not marshal the data: %v", err)
 		}
 
-		var got User
+		var got database.DBUser
 		if err := json.Unmarshal(dataBytes, &got); err != nil {
 			t.Fatalf("could not unmarshal the user: %v", err)
 		}
 
-		if got.ID == ID(uuid.Nil) ||
-			got.FirstName != expectedData.FirstName ||
-			got.LastName != expectedData.LastName ||
-			got.Biography != expectedData.Biography {
+		if got.ID == database.ID(uuid.Nil) ||
+			got.User.FirstName != expectedData.User.FirstName ||
+			got.User.LastName != expectedData.User.LastName ||
+			got.User.Biography != expectedData.User.Biography {
 			t.Errorf("expected user %v; got %v", expectedData, got)
 		}
 	}

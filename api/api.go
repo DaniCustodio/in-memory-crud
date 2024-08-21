@@ -3,32 +3,13 @@ package api
 import (
 	"encoding/json"
 	"log/slog"
+	"main/database"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 )
-
-type ID uuid.UUID
-
-type User struct {
-	ID        ID
-	FirstName string
-	LastName  string
-	Biography string
-}
-
-func (u User) isEmpty() bool {
-	return u == User{}
-}
-
-type CreateUserBody struct {
-	FirstName string `json:"first_name" validate:"required,min=2,max=20"`
-	LastName  string `json:"last_name" validate:"required,min=2,max=20"`
-	Biography string `json:"biography" validate:"required,min=20,max=450"`
-}
 
 type Response struct {
 	Message string `json:"message,omitempty"`
@@ -38,53 +19,53 @@ type Response struct {
 // WithRequiredStructEnabled: opt-in to new behavior that will become the default behavior in v11+
 var validate = validator.New(validator.WithRequiredStructEnabled())
 
-func NewHandler() http.Handler {
+func NewHandler(db *database.InMemoryDB) http.Handler {
 	router := chi.NewRouter()
 
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 
-	router.Post("/api/users", handleCreateUser)
+	router.Post("/api/users", handleCreateUser(db))
 
 	return router
 }
 
-func handleCreateUser(w http.ResponseWriter, r *http.Request) {
-	var body CreateUserBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+func handleCreateUser(db *database.InMemoryDB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body database.User
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			sendJSON(
+				w,
+				Response{Message: "could not decode the request"},
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		if err := validate.Struct(&body); err != nil {
+			sendJSON(
+				w,
+				Response{Message: "Please provide a valid FirstName, LastName and Bio for the user"},
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		user := database.User{
+			FirstName: body.FirstName,
+			LastName:  body.LastName,
+			Biography: body.Biography,
+		}
+
+		dbUser := db.Insert(user)
+
 		sendJSON(
 			w,
-			Response{Message: "could not decode the request"},
-			http.StatusBadRequest,
+			Response{Data: dbUser},
+			http.StatusCreated,
 		)
-		return
 	}
-
-	if err := validate.Struct(&body); err != nil {
-		sendJSON(
-			w,
-			Response{Message: "Please provide a valid FirstName, LastName and Bio for the user"},
-			http.StatusBadRequest,
-		)
-		return
-	}
-
-	userId := ID(uuid.New())
-	user := User{
-		ID:        userId,
-		FirstName: body.FirstName,
-		LastName:  body.LastName,
-		Biography: body.Biography,
-	}
-
-	// TODO: save the user to the database
-
-	sendJSON(
-		w,
-		Response{Data: user},
-		http.StatusCreated,
-	)
 }
 
 func sendJSON(w http.ResponseWriter, resp Response, status int) {
