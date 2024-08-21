@@ -27,8 +27,21 @@ func NewHandler(db *database.InMemoryDB) http.Handler {
 	router.Use(middleware.Logger)
 
 	router.Post("/api/users", handleCreateUser(db))
+	router.Get("/api/users", handleGetUsers(db))
 
 	return router
+}
+
+func handleGetUsers(db *database.InMemoryDB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		users := db.FindAll()
+
+		sendJSON(
+			w,
+			Response{Data: users},
+			http.StatusOK,
+		)
+	}
 }
 
 func handleCreateUser(db *database.InMemoryDB) http.HandlerFunc {
