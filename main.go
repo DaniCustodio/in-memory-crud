@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"main/api"
+	"main/database"
 	"net/http"
 	"time"
 )
@@ -15,7 +16,8 @@ func main() {
 }
 
 func run() error {
-	handler := api.NewHandler()
+	db := database.NewInMemoryDB()
+	handler := api.NewHandler(db)
 
 	server := http.Server{
 		Addr:         ":8080",
