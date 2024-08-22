@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"sync"
 	"testing"
-
-	"github.com/google/uuid"
 )
 
 func TestInMemoryDB(t *testing.T) {
@@ -29,13 +27,13 @@ func TestInMemoryDB(t *testing.T) {
 
 		dbUser := db.Insert(user)
 
-		got, exists := db.FindByID(dbUser.ID)
+		got, exists := db.FindByID(dbUser.ID.String())
 
 		if !exists {
 			t.Fatalf("expected the user to exist in the database")
 		}
 
-		if got != user {
+		if got != dbUser {
 			t.Fatalf("expected the user to be %v, got %v", user, got)
 		}
 	})
@@ -63,7 +61,7 @@ func TestInMemoryDB(t *testing.T) {
 
 		db.Delete(dbUser.ID)
 
-		_, exists := db.FindByID(dbUser.ID)
+		_, exists := db.FindByID(dbUser.ID.String())
 
 		if exists {
 			t.Fatalf("expected the user to be deleted from the database")
@@ -79,15 +77,20 @@ func TestInMemoryDB(t *testing.T) {
 
 		updatedUser := users[1]
 
-		db.Update(dbUser.ID, updatedUser)
+		db.Update(dbUser.ID.String(), updatedUser)
 
-		got, exists := db.FindByID(dbUser.ID)
+		got, exists := db.FindByID(dbUser.ID.String())
 
 		if !exists {
 			t.Fatalf("expected the user to exist in the database")
 		}
 
-		if got != updatedUser {
+		expected := DBUser{
+			ID:   dbUser.ID,
+			User: updatedUser,
+		}
+
+		if got != expected {
 			t.Fatalf("expected the user to be %v, got %v", updatedUser, got)
 		}
 	})
@@ -97,7 +100,7 @@ func TestInMemoryDB(t *testing.T) {
 
 		updatedUser := users[1]
 
-		_, err := db.Update(ID(uuid.New()), updatedUser)
+		_, err := db.Update(ID{}.NewID().String(), updatedUser)
 
 		if err != ErrUserDoesNotExist {
 			t.Fatalf("expected the error to be %v, got %v", ErrUserDoesNotExist, err)
