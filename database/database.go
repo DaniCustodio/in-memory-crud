@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"log/slog"
 	"sync"
 
 	"github.com/google/uuid"
@@ -10,6 +11,14 @@ import (
 var ErrUserDoesNotExist = errors.New("user does not exist")
 
 type ID uuid.UUID
+
+func (i ID) NewID() ID {
+	return ID(uuid.New())
+}
+
+func (i ID) String() string {
+	return uuid.UUID(i).String()
+}
 
 type User struct {
 	FirstName string `json:"first_name" validate:"required,min=2,max=20"`
@@ -50,18 +59,23 @@ func (db *InMemoryDB) Insert(value User) DBUser {
 	}
 }
 
-func (db *InMemoryDB) Update(id ID, updatedUser User) (DBUser, error) {
+func (db *InMemoryDB) Update(id string, updatedUser User) (DBUser, error) {
+	parsedID, err := parseID(id)
+	if err != nil {
+		return DBUser{}, err
+	}
+
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	if _, exists := db.data[id]; !exists {
+	if _, exists := db.data[parsedID]; !exists {
 		return DBUser{}, ErrUserDoesNotExist
 	}
 
-	db.data[id] = updatedUser
+	db.data[parsedID] = updatedUser
 
 	return DBUser{
-		ID:   id,
+		ID:   parsedID,
 		User: updatedUser,
 	}, nil
 }
@@ -72,20 +86,40 @@ func (db *InMemoryDB) Delete(id ID) {
 	delete(db.data, id)
 }
 
-func (db *InMemoryDB) FindAll() []User {
+func (db *InMemoryDB) FindAll() []DBUser {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
-	users := make([]User, 0, len(db.data))
-	for _, user := range db.data {
-		users = append(users, user)
+
+	users := make([]DBUser, 0, len(db.data))
+	for id, user := range db.data {
+		users = append(users, DBUser{
+			ID:   id,
+			User: user,
+		})
 	}
 
 	return users
 }
 
-func (db *InMemoryDB) FindByID(id ID) (User, bool) {
+func (db *InMemoryDB) FindByID(id string) (DBUser, bool) {
+	parsedID, err := parseID(id)
+	if err != nil {
+		return DBUser{}, false
+	}
+
 	db.mu.RLock()
 	defer db.mu.RUnlock()
-	user, exists := db.data[id]
-	return user, exists
+
+	user, exists := db.data[parsedID]
+	return DBUser{ID: parsedID, User: user}, exists
+}
+
+func parseID(id string) (ID, error) {
+	parsedID, err := uuid.Parse(id)
+	if err != nil {
+		slog.Error("could not parse the id", "error", err)
+		return ID{}, err
+	}
+
+	return ID(parsedID), nil
 }

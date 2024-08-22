@@ -27,8 +27,44 @@ func NewHandler(db *database.InMemoryDB) http.Handler {
 	router.Use(middleware.Logger)
 
 	router.Post("/api/users", handleCreateUser(db))
+	router.Get("/api/users", handleGetUsers(db))
+	router.Get("/api/users/{id}", handleGetUser(db))
 
 	return router
+}
+
+func handleGetUser(db *database.InMemoryDB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+
+		user, exists := db.FindByID(id)
+		if !exists {
+			sendJSON(
+				w,
+				Response{Message: "The user with the specified ID does not exist"},
+				http.StatusNotFound,
+			)
+			return
+		}
+
+		sendJSON(
+			w,
+			Response{Data: user},
+			http.StatusOK,
+		)
+	}
+}
+
+func handleGetUsers(db *database.InMemoryDB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		users := db.FindAll()
+
+		sendJSON(
+			w,
+			Response{Data: users},
+			http.StatusOK,
+		)
+	}
 }
 
 func handleCreateUser(db *database.InMemoryDB) http.HandlerFunc {
