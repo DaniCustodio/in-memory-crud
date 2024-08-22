@@ -38,15 +38,7 @@ func TestGetUsers(t *testing.T) {
 			t.Fatalf("expected status code to be %d, got %d", http.StatusOK, rec.Code)
 		}
 
-		data, err := json.Marshal(response.Data)
-		if err != nil {
-			t.Fatalf("could not marshal the data: %v", err)
-		}
-
-		var got []database.User
-		if err := json.Unmarshal(data, &got); err != nil {
-			t.Fatalf("could not unmarshal the user: %v", err)
-		}
+		got := parseData[[]database.DBUser](t, response.Data)
 
 		if len(got) != len(users) {
 			t.Fatalf("expected %d users, got %d", len(users), len(got))
@@ -69,15 +61,7 @@ func TestGetUsers(t *testing.T) {
 			t.Fatalf("expected status code to be %d, got %d", http.StatusOK, rec.Code)
 		}
 
-		data, err := json.Marshal(response.Data)
-		if err != nil {
-			t.Fatalf("could not marshal the data: %v", err)
-		}
-
-		var got database.DBUser
-		if err := json.Unmarshal(data, &got); err != nil {
-			t.Fatalf("could not unmarshal the user: %v", err)
-		}
+		got := parseData[database.DBUser](t, response.Data)
 
 		if got != dbUsers[0] {
 			t.Fatalf("expected user to be %v, got %v", dbUsers[0], got)
@@ -103,6 +87,21 @@ func TestGetUsers(t *testing.T) {
 			t.Fatalf("expected message to be %s, got %s", "The user with the specified ID does not exist", response.Message)
 		}
 	})
+}
+
+func parseData[T any](t testing.TB, data any) T {
+	t.Helper()
+	var result T
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("could not marshal the data: %v", err)
+	}
+
+	if err := json.Unmarshal(bytes, &result); err != nil {
+		t.Fatalf("could not unmarshal the data: %v", err)
+	}
+
+	return result
 }
 
 func makeGetRequest(db *database.InMemoryDB, userID string) *httptest.ResponseRecorder {
