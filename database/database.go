@@ -80,10 +80,23 @@ func (db *InMemoryDB) Update(id string, updatedUser User) (DBUser, error) {
 	}, nil
 }
 
-func (db *InMemoryDB) Delete(id ID) {
+func (db *InMemoryDB) Delete(id string) (DBUser, error) {
+	parsedID, err := parseID(id)
+	if err != nil {
+		return DBUser{}, err
+	}
+
 	db.mu.Lock()
 	defer db.mu.Unlock()
-	delete(db.data, id)
+
+	user, exists := db.data[parsedID]
+	if !exists {
+		return DBUser{}, ErrUserDoesNotExist
+	}
+
+	delete(db.data, parsedID)
+
+	return DBUser{ID: parsedID, User: user}, nil
 }
 
 func (db *InMemoryDB) FindAll() []DBUser {
