@@ -29,6 +29,7 @@ func NewHandler(db *database.InMemoryDB) http.Handler {
 	router.Post("/api/users", handleCreateUser(db))
 	router.Get("/api/users", handleGetUsers(db))
 	router.Get("/api/users/{id}", handleGetUser(db))
+	router.Delete("/api/users/{id}", handleDeleteUser(db))
 
 	return router
 }
@@ -100,6 +101,27 @@ func handleCreateUser(db *database.InMemoryDB) http.HandlerFunc {
 			w,
 			Response{Data: dbUser},
 			http.StatusCreated,
+		)
+	}
+}
+
+func handleDeleteUser(db *database.InMemoryDB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+
+		user, err := db.Delete(id)
+		if err != nil {
+			sendJSON(
+				w,
+				Response{Message: "The user with the specified ID does not exist"},
+				http.StatusNotFound,
+			)
+		}
+
+		sendJSON(
+			w,
+			Response{Data: user},
+			http.StatusOK,
 		)
 	}
 }

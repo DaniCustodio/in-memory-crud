@@ -59,12 +59,22 @@ func TestInMemoryDB(t *testing.T) {
 
 		dbUser := db.Insert(user)
 
-		db.Delete(dbUser.ID)
+		db.Delete(dbUser.ID.String())
 
 		_, exists := db.FindByID(dbUser.ID.String())
 
 		if exists {
 			t.Fatalf("expected the user to be deleted from the database")
+		}
+	})
+
+	t.Run("delete a user that doesn't exist", func(t *testing.T) {
+		db := NewInMemoryDB()
+
+		_, err := db.Delete(ID{}.NewID().String())
+
+		if err != ErrUserDoesNotExist {
+			t.Fatalf("expected the error to be %v, got %v", ErrUserDoesNotExist, err)
 		}
 	})
 
