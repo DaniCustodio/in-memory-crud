@@ -1,0 +1,124 @@
+package api
+
+import (
+	"bytes"
+	"encoding/json"
+	"main/database"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+func TestUpdateUser(t *testing.T) {
+	t.Run("update a user successfully", func(t *testing.T) {
+		db := setupDB()
+
+		users := db.FindAll()
+
+		updatedUser := database.User{
+			FirstName: "updated first name",
+			LastName:  "updated last name",
+			Biography: "updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography",
+		}
+
+		rec := makePUTRequest(
+			t,
+			db,
+			users[0].ID.String(),
+			updatedUser,
+		)
+
+		var response Response
+		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
+			t.Fatalf("could not decode response: %v", err)
+		}
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		}
+
+		got := parseData[database.DBUser](t, response.Data)
+
+		if got.ID != users[0].ID {
+			t.Errorf("expected id %d, got %d", users[0].ID, got.ID)
+		}
+	})
+
+	t.Run("update a user with invalid data", func(t *testing.T) {
+		db := setupDB()
+
+		users := db.FindAll()
+
+		updatedUser := database.User{
+			FirstName: "updated first name",
+			LastName:  "updated last name",
+		}
+
+		rec := makePUTRequest(
+			t,
+			db,
+			users[0].ID.String(),
+			updatedUser,
+		)
+
+		var response Response
+		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
+			t.Fatalf("could not decode response: %v", err)
+		}
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		}
+
+		if response.Message != "Please provide name and bio for the user" {
+			t.Fatalf("expected message to be %s, got %s", "Please provide name and bio for the user", response.Message)
+		}
+	})
+
+	t.Run("update a user with invalid id", func(t *testing.T) {
+		db := setupDB()
+
+		updatedUser := database.User{
+			FirstName: "updated first name",
+			LastName:  "updated last name",
+			Biography: "updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography",
+		}
+
+		rec := makePUTRequest(
+			t,
+			db,
+			database.ID{}.NewID().String(),
+			updatedUser,
+		)
+
+		var response Response
+		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
+			t.Fatalf("could not decode response: %v", err)
+		}
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		}
+
+		if response.Message != "The user with the specified ID does not exist" {
+			t.Fatalf("expected message to be %s, got %s", "The user with the specified ID does not exist", response.Message)
+		}
+	})
+}
+
+func makePUTRequest(t testing.TB, db *database.InMemoryDB, userID string, user database.User) *httptest.ResponseRecorder {
+	t.Helper()
+	payload, err := json.Marshal(user)
+	if err != nil {
+		t.Fatalf("could not marshal the user: %v", err)
+	}
+
+	router := NewHandler(db)
+
+	req := httptest.NewRequest(http.MethodPut, "/api/users/"+userID, bytes.NewBuffer(payload))
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	return rec
+}

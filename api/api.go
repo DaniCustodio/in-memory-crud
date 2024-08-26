@@ -30,6 +30,7 @@ func NewHandler(db *database.InMemoryDB) http.Handler {
 	router.Get("/api/users", handleGetUsers(db))
 	router.Get("/api/users/{id}", handleGetUser(db))
 	router.Delete("/api/users/{id}", handleDeleteUser(db))
+	router.Put("/api/users/{id}", handleUpdateUser(db))
 
 	return router
 }
@@ -116,6 +117,47 @@ func handleDeleteUser(db *database.InMemoryDB) http.HandlerFunc {
 				Response{Message: "The user with the specified ID does not exist"},
 				http.StatusNotFound,
 			)
+		}
+
+		sendJSON(
+			w,
+			Response{Data: user},
+			http.StatusOK,
+		)
+	}
+}
+
+func handleUpdateUser(db *database.InMemoryDB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+
+		var body database.User
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			sendJSON(
+				w,
+				Response{Message: "could not decode the request"},
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		if err := validate.Struct(&body); err != nil {
+			sendJSON(
+				w,
+				Response{Message: "Please provide name and bio for the user"},
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		user, err := db.Update(id, body)
+		if err != nil {
+			sendJSON(
+				w,
+				Response{Message: "The user with the specified ID does not exist"},
+				http.StatusNotFound,
+			)
+			return
 		}
 
 		sendJSON(
