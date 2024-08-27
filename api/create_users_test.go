@@ -1,35 +1,44 @@
 package api
 
 import (
-	"bytes"
-	"encoding/json"
 	"main/database"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
 func TestCreateUser(t *testing.T) {
+	const URL = "/api/users"
+
 	requestBody := database.User{
 		FirstName: "John",
 		LastName:  "Doe",
 		Biography: "A regular guy who loves to code in Go and JavaScript",
 	}
 
-	emptyDBUser := database.DBUser{}
-
 	t.Run("create a user successfully", func(t *testing.T) {
-		rec := makeRequest(t, requestBody)
+		db := database.NewInMemoryDB()
 
-		assertResponse(
+		req, err := createRequest(http.MethodPost, URL, requestBody)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
+
+		response, err := parseResponse[database.DBUser](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusCreated, rec.Code)
+
+		assertUser(
 			t,
-			rec,
-			http.StatusCreated,
-			"",
 			database.DBUser{
 				ID:   database.ID{}.NewID(),
 				User: requestBody,
 			},
+			response.Data,
 		)
 	})
 
@@ -37,151 +46,137 @@ func TestCreateUser(t *testing.T) {
 		user := requestBody
 		user.FirstName = ""
 
-		rec := makeRequest(t, user)
+		db := database.NewInMemoryDB()
 
-		assertResponse(
-			t,
-			rec,
-			http.StatusBadRequest,
-			"Please provide a valid FirstName, LastName and Bio for the user",
-			emptyDBUser,
-		)
+		req, err := createRequest(http.MethodPost, URL, user)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
+
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, ErrInvalidUserParams.Error(), response.Message)
 	})
 
 	t.Run("first name length should be <= 20", func(t *testing.T) {
 		user := requestBody
 		user.FirstName = "JohnDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoe"
 
-		rec := makeRequest(t, user)
+		db := database.NewInMemoryDB()
 
-		assertResponse(
-			t,
-			rec,
-			http.StatusBadRequest,
-			"Please provide a valid FirstName, LastName and Bio for the user",
-			emptyDBUser,
-		)
+		req, err := createRequest(http.MethodPost, URL, user)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
+
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, ErrInvalidUserParams.Error(), response.Message)
 	})
 
 	t.Run("last name length should be >= 2", func(t *testing.T) {
 		user := requestBody
 		user.LastName = ""
 
-		rec := makeRequest(t, user)
+		db := database.NewInMemoryDB()
 
-		assertResponse(
-			t,
-			rec,
-			http.StatusBadRequest,
-			"Please provide a valid FirstName, LastName and Bio for the user",
-			emptyDBUser,
-		)
+		req, err := createRequest(http.MethodPost, URL, user)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
+
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, ErrInvalidUserParams.Error(), response.Message)
 	})
 
 	t.Run("last name length should be <= 20", func(t *testing.T) {
 		user := requestBody
 		user.LastName = "DoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoe"
 
-		rec := makeRequest(t, user)
+		db := database.NewInMemoryDB()
 
-		assertResponse(
-			t,
-			rec,
-			http.StatusBadRequest,
-			"Please provide a valid FirstName, LastName and Bio for the user",
-			emptyDBUser,
-		)
+		req, err := createRequest(http.MethodPost, URL, user)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
+
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, ErrInvalidUserParams.Error(), response.Message)
 	})
 
 	t.Run("biography length should be >= 20", func(t *testing.T) {
 		user := requestBody
 		user.Biography = ""
 
-		rec := makeRequest(t, user)
+		db := database.NewInMemoryDB()
 
-		assertResponse(
-			t,
-			rec,
-			http.StatusBadRequest,
-			"Please provide a valid FirstName, LastName and Bio for the user",
-			emptyDBUser,
-		)
+		req, err := createRequest(http.MethodPost, URL, user)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
+
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, ErrInvalidUserParams.Error(), response.Message)
 	})
 
 	t.Run("biography length should be <= 450", func(t *testing.T) {
 		user := requestBody
 		user.Biography = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi ac eleifend felis, a dictum lacus. Vivamus nibh tellus, lobortis ac luctus vel, hendrerit in sapien. Pellentesque fringilla blandit interdum. Nullam at placerat dolor. Vivamus at hendrerit urna, eget interdum lorem. Curabitur a libero eget erat bibendum imperdiet. Morbi aliquet tellus id egestas vehicula.Curabitur eget elit pellentesque, ullamcorper est ut, vehicula nisi. Duis rhoncus cursus mi a convallis. Vestibulum sit amet vestibulum magna. Suspendisse posuere convallis nisi sed viverra. Sed molestie enim eget dignissim tincidunt. Curabitur eget sollicitudin dolor. In maximus dictum massa, sit amet commodo tellus. Nunc tempor sit amet libero vel tempor. Vestibulum sollicitudin risus sed augue pulvinar malesuada. Proin in tempus dolor, vel varius orci. Aliquam id nibh eu purus viverra vehicula ut."
 
-		rec := makeRequest(t, user)
+		db := database.NewInMemoryDB()
 
-		assertResponse(
-			t,
-			rec,
-			http.StatusBadRequest,
-			"Please provide a valid FirstName, LastName and Bio for the user",
-			emptyDBUser,
-		)
-	})
-}
-
-func makeRequest(t testing.TB, user database.User) *httptest.ResponseRecorder {
-	t.Helper()
-	payload, err := json.Marshal(user)
-	if err != nil {
-		t.Fatalf("could not marshal the user: %v", err)
-	}
-
-	db := database.NewInMemoryDB()
-	router := NewHandler(db)
-
-	req, err := http.NewRequest(http.MethodPost, "/api/users", bytes.NewBuffer(payload))
-	if err != nil {
-		t.Fatalf("could not create a request: %v", err)
-	}
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	return rec
-}
-
-func assertResponse(
-	t testing.TB,
-	resp *httptest.ResponseRecorder,
-	expectedStatus int,
-	expectedMessage string,
-	expectedData database.DBUser,
-) {
-	t.Helper()
-	var response Response
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		t.Fatalf("could not decode the response: %v", err)
-	}
-
-	if resp.Code != expectedStatus {
-		t.Errorf("expected status %d; got %d", expectedStatus, resp.Code)
-	}
-
-	if response.Message != expectedMessage {
-		t.Errorf("expected message %q; got %q", expectedMessage, response.Message)
-	}
-
-	if !expectedData.IsEmpty() {
-		dataBytes, err := json.Marshal(response.Data)
+		req, err := createRequest(http.MethodPost, URL, user)
 		if err != nil {
-			t.Fatalf("could not marshal the data: %v", err)
+			t.Fatal(err)
 		}
 
-		var got database.DBUser
-		if err := json.Unmarshal(dataBytes, &got); err != nil {
-			t.Fatalf("could not unmarshal the user: %v", err)
+		rec := makeRequest(db, req)
+
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		if got.ID.IsEmpty() ||
-			got.User.FirstName != expectedData.User.FirstName ||
-			got.User.LastName != expectedData.User.LastName ||
-			got.User.Biography != expectedData.User.Biography {
-			t.Errorf("expected user %v; got %v", expectedData, got)
-		}
-	}
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, ErrInvalidUserParams.Error(), response.Message)
+	})
 }

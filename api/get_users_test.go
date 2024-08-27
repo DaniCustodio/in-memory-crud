@@ -1,10 +1,8 @@
 package api
 
 import (
-	"encoding/json"
 	"main/database"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
@@ -23,25 +21,31 @@ var users []database.User = []database.User{
 }
 
 func TestGetUsers(t *testing.T) {
+	const URL = "/api/users"
 
 	t.Run("get list of users", func(t *testing.T) {
 		db := setupDB()
 
-		rec := makeGetRequest(db, "")
-
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode the response: %v", err)
+		request, err := createRequest(
+			http.MethodGet,
+			URL,
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status code to be %d, got %d", http.StatusOK, rec.Code)
+		rec := makeRequest(db, request)
+
+		response, err := parseResponse[[]database.DBUser](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		got := parseData[[]database.DBUser](t, response.Data)
+		assertStatusCode(t, http.StatusOK, rec.Code)
 
-		if len(got) != len(users) {
-			t.Fatalf("expected %d users, got %d", len(users), len(got))
+		if len(response.Data) != len(users) {
+			t.Fatalf("expected %d users, got %d", len(users), len(response.Data))
 		}
 	})
 
@@ -50,82 +54,48 @@ func TestGetUsers(t *testing.T) {
 
 		dbUsers := db.FindAll()
 
-		rec := makeGetRequest(db, dbUsers[0].ID.String())
-
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode the response: %v", err)
+		request, err := createRequest(
+			http.MethodGet,
+			URL+"/"+dbUsers[0].ID.String(),
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status code to be %d, got %d", http.StatusOK, rec.Code)
+		rec := makeRequest(db, request)
+
+		response, err := parseResponse[database.DBUser](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		got := parseData[database.DBUser](t, response.Data)
+		assertStatusCode(t, http.StatusOK, rec.Code)
 
-		if got != dbUsers[0] {
-			t.Fatalf("expected user to be %v, got %v", dbUsers[0], got)
-		}
-
+		assertUser(t, dbUsers[0], response.Data)
 	})
 
 	t.Run("get user by ID that does not exist", func(t *testing.T) {
 		db := setupDB()
 
-		rec := makeGetRequest(db, database.ID{}.NewID().String())
-
-		if rec.Code != http.StatusNotFound {
-			t.Fatalf("expected status code to be %d, got %d", http.StatusNotFound, rec.Code)
+		request, err := createRequest(
+			http.MethodGet,
+			URL+"/"+database.ID{}.NewID().String(),
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode the response: %v", err)
+		rec := makeRequest(db, request)
+
+		assertStatusCode(t, http.StatusNotFound, rec.Code)
+
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		if response.Message != "The user with the specified ID does not exist" {
-			t.Fatalf("expected message to be %s, got %s", "The user with the specified ID does not exist", response.Message)
-		}
+		assertErrorMessage(t, ErrUserNotFound.Error(), response.Message)
 	})
-}
-
-func parseData[T any](t testing.TB, data any) T {
-	t.Helper()
-	var result T
-	bytes, err := json.Marshal(data)
-	if err != nil {
-		t.Fatalf("could not marshal the data: %v", err)
-	}
-
-	if err := json.Unmarshal(bytes, &result); err != nil {
-		t.Fatalf("could not unmarshal the data: %v", err)
-	}
-
-	return result
-}
-
-func makeGetRequest(db *database.InMemoryDB, userID string) *httptest.ResponseRecorder {
-	router := NewHandler(db)
-
-	var url string
-	if userID == "" {
-		url = "/api/users"
-	} else {
-		url = "/api/users/" + userID
-	}
-
-	req := httptest.NewRequest(http.MethodGet, url, nil)
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	return rec
-}
-
-func setupDB() *database.InMemoryDB {
-	db := database.NewInMemoryDB()
-	db.Insert(users[0])
-	db.Insert(users[1])
-
-	return db
 }

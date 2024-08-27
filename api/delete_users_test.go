@@ -1,64 +1,61 @@
 package api
 
 import (
-	"encoding/json"
 	"main/database"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
 func TestDeleteUser(t *testing.T) {
+	const URL = "/api/users/"
+
 	t.Run("delete a user successfully", func(t *testing.T) {
 		db := setupDB()
 
 		users := db.FindAll()
 
-		rec := makeDeleteRequest(db, users[0].ID.String())
-
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode the response: %v", err)
+		request, err := createRequest(
+			http.MethodDelete,
+			URL+users[0].ID.String(),
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status code to be %d, got %d", http.StatusOK, rec.Code)
+		rec := makeRequest(db, request)
+
+		response, err := parseResponse[database.DBUser](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		got := parseData[database.DBUser](t, response.Data)
+		assertStatusCode(t, http.StatusOK, rec.Code)
 
-		if got.ID != users[0].ID {
-			t.Fatalf("expected user id to be %s, got %s", users[0].ID, got.ID)
-		}
+		assertUser(t, users[0], response.Data)
 	})
 
 	t.Run("delete a user that doesn't exists", func(t *testing.T) {
 		db := setupDB()
 
-		rec := makeDeleteRequest(db, database.ID{}.NewID().String())
-
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode the response: %v", err)
+		request, err := createRequest(
+			http.MethodDelete,
+			URL+database.ID{}.NewID().String(),
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		if rec.Code != http.StatusNotFound {
-			t.Fatalf("expected status code to be %d, got %d", http.StatusNotFound, rec.Code)
+		rec := makeRequest(db, request)
+
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		if response.Message != "The user with the specified ID does not exist" {
-			t.Fatalf("expected message to be %s, got %s", "The user with the specified ID does not exist", response.Message)
-		}
+		assertStatusCode(t, http.StatusNotFound, rec.Code)
+
+		assertErrorMessage(t, ErrUserNotFound.Error(), response.Message)
 	})
-}
-
-func makeDeleteRequest(db *database.InMemoryDB, userID string) *httptest.ResponseRecorder {
-	router := NewHandler(db)
-
-	req := httptest.NewRequest(http.MethodDelete, "/api/users/"+userID, nil)
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	return rec
 }

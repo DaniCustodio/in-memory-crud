@@ -1,15 +1,14 @@
 package api
 
 import (
-	"bytes"
-	"encoding/json"
 	"main/database"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
 func TestUpdateUser(t *testing.T) {
+	const URL = "/api/users/"
+
 	t.Run("update a user successfully", func(t *testing.T) {
 		db := setupDB()
 
@@ -21,27 +20,21 @@ func TestUpdateUser(t *testing.T) {
 			Biography: "updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography",
 		}
 
-		rec := makePUTRequest(
-			t,
-			db,
-			users[0].ID.String(),
-			updatedUser,
-		)
-
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode response: %v", err)
+		req, err := createRequest(http.MethodPut, URL+users[0].ID.String(), updatedUser)
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		if rec.Code != http.StatusOK {
-			t.Errorf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		rec := makeRequest(db, req)
+
+		response, err := parseResponse[database.DBUser](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		got := parseData[database.DBUser](t, response.Data)
+		assertStatusCode(t, http.StatusOK, rec.Code)
 
-		if got.ID != users[0].ID {
-			t.Errorf("expected id %d, got %d", users[0].ID, got.ID)
-		}
+		assertUser(t, database.DBUser{ID: users[0].ID, User: updatedUser}, response.Data)
 	})
 
 	t.Run("update a user with invalid data", func(t *testing.T) {
@@ -54,25 +47,21 @@ func TestUpdateUser(t *testing.T) {
 			LastName:  "updated last name",
 		}
 
-		rec := makePUTRequest(
-			t,
-			db,
-			users[0].ID.String(),
-			updatedUser,
-		)
-
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode response: %v", err)
+		req, err := createRequest(http.MethodPut, URL+users[0].ID.String(), updatedUser)
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		if rec.Code != http.StatusBadRequest {
-			t.Errorf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		rec := makeRequest(db, req)
+
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		if response.Message != "Please provide name and bio for the user" {
-			t.Fatalf("expected message to be %s, got %s", "Please provide name and bio for the user", response.Message)
-		}
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, ErrInvalidUpdateUserParams.Error(), response.Message)
 	})
 
 	t.Run("update a user with invalid id", func(t *testing.T) {
@@ -84,41 +73,20 @@ func TestUpdateUser(t *testing.T) {
 			Biography: "updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography",
 		}
 
-		rec := makePUTRequest(
-			t,
-			db,
-			database.ID{}.NewID().String(),
-			updatedUser,
-		)
-
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode response: %v", err)
+		req, err := createRequest(http.MethodPut, URL+database.ID{}.NewID().String(), updatedUser)
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		if rec.Code != http.StatusNotFound {
-			t.Errorf("expected status code %d, got %d", http.StatusOK, rec.Code)
+		rec := makeRequest(db, req)
+
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		if response.Message != "The user with the specified ID does not exist" {
-			t.Fatalf("expected message to be %s, got %s", "The user with the specified ID does not exist", response.Message)
-		}
+		assertStatusCode(t, http.StatusNotFound, rec.Code)
+
+		assertErrorMessage(t, ErrUserNotFound.Error(), response.Message)
 	})
-}
-
-func makePUTRequest(t testing.TB, db *database.InMemoryDB, userID string, user database.User) *httptest.ResponseRecorder {
-	t.Helper()
-	payload, err := json.Marshal(user)
-	if err != nil {
-		t.Fatalf("could not marshal the user: %v", err)
-	}
-
-	router := NewHandler(db)
-
-	req := httptest.NewRequest(http.MethodPut, "/api/users/"+userID, bytes.NewBuffer(payload))
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	return rec
 }
