@@ -34,9 +34,7 @@ func TestUpdateUser(t *testing.T) {
 
 		assertStatusCode(t, http.StatusOK, rec.Code)
 
-		if response.Data.ID != users[0].ID {
-			t.Errorf("expected id %d, got %d", users[0].ID, response.Data.ID)
-		}
+		assertUser(t, database.DBUser{ID: users[0].ID, User: updatedUser}, response.Data)
 	})
 
 	t.Run("update a user with invalid data", func(t *testing.T) {

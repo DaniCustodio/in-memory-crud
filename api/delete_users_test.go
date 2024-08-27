@@ -3,17 +3,27 @@ package api
 import (
 	"main/database"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
 func TestDeleteUser(t *testing.T) {
+	const URL = "/api/users/"
+
 	t.Run("delete a user successfully", func(t *testing.T) {
 		db := setupDB()
 
 		users := db.FindAll()
 
-		rec := makeDeleteRequest(db, users[0].ID.String())
+		request, err := createRequest(
+			http.MethodDelete,
+			URL+users[0].ID.String(),
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, request)
 
 		response, err := parseResponse[database.DBUser](rec)
 		if err != nil {
@@ -22,15 +32,22 @@ func TestDeleteUser(t *testing.T) {
 
 		assertStatusCode(t, http.StatusOK, rec.Code)
 
-		if response.Data.ID != users[0].ID {
-			t.Fatalf("expected user id to be %s, got %s", users[0].ID, response.Data.ID)
-		}
+		assertUser(t, users[0], response.Data)
 	})
 
 	t.Run("delete a user that doesn't exists", func(t *testing.T) {
 		db := setupDB()
 
-		rec := makeDeleteRequest(db, database.ID{}.NewID().String())
+		request, err := createRequest(
+			http.MethodDelete,
+			URL+database.ID{}.NewID().String(),
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, request)
 
 		response, err := parseResponse[any](rec)
 		if err != nil {
@@ -41,15 +58,4 @@ func TestDeleteUser(t *testing.T) {
 
 		assertErrorMessage(t, "The user with the specified ID does not exist", response.Message)
 	})
-}
-
-func makeDeleteRequest(db *database.InMemoryDB, userID string) *httptest.ResponseRecorder {
-	router := NewHandler(db)
-
-	req := httptest.NewRequest(http.MethodDelete, "/api/users/"+userID, nil)
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	return rec
 }

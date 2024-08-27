@@ -3,7 +3,6 @@ package api
 import (
 	"main/database"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
@@ -22,11 +21,21 @@ var users []database.User = []database.User{
 }
 
 func TestGetUsers(t *testing.T) {
+	const URL = "/api/users"
 
 	t.Run("get list of users", func(t *testing.T) {
 		db := setupDB()
 
-		rec := makeGetRequest(db, "")
+		request, err := createRequest(
+			http.MethodGet,
+			URL,
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, request)
 
 		response, err := parseResponse[[]database.DBUser](rec)
 		if err != nil {
@@ -45,7 +54,16 @@ func TestGetUsers(t *testing.T) {
 
 		dbUsers := db.FindAll()
 
-		rec := makeGetRequest(db, dbUsers[0].ID.String())
+		request, err := createRequest(
+			http.MethodGet,
+			URL+"/"+dbUsers[0].ID.String(),
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, request)
 
 		response, err := parseResponse[database.DBUser](rec)
 		if err != nil {
@@ -54,16 +72,22 @@ func TestGetUsers(t *testing.T) {
 
 		assertStatusCode(t, http.StatusOK, rec.Code)
 
-		if response.Data != dbUsers[0] {
-			t.Fatalf("expected user to be %v, got %v", dbUsers[0], response.Data)
-		}
-
+		assertUser(t, dbUsers[0], response.Data)
 	})
 
 	t.Run("get user by ID that does not exist", func(t *testing.T) {
 		db := setupDB()
 
-		rec := makeGetRequest(db, database.ID{}.NewID().String())
+		request, err := createRequest(
+			http.MethodGet,
+			URL+"/"+database.ID{}.NewID().String(),
+			nil,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, request)
 
 		assertStatusCode(t, http.StatusNotFound, rec.Code)
 
@@ -74,30 +98,4 @@ func TestGetUsers(t *testing.T) {
 
 		assertErrorMessage(t, "The user with the specified ID does not exist", response.Message)
 	})
-}
-
-func makeGetRequest(db *database.InMemoryDB, userID string) *httptest.ResponseRecorder {
-	router := NewHandler(db)
-
-	var url string
-	if userID == "" {
-		url = "/api/users"
-	} else {
-		url = "/api/users/" + userID
-	}
-
-	req := httptest.NewRequest(http.MethodGet, url, nil)
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	return rec
-}
-
-func setupDB() *database.InMemoryDB {
-	db := database.NewInMemoryDB()
-	db.Insert(users[0])
-	db.Insert(users[1])
-
-	return db
 }
