@@ -10,6 +10,8 @@ import (
 )
 
 func TestCreateUser(t *testing.T) {
+	const URL = "/api/users"
+
 	requestBody := database.User{
 		FirstName: "John",
 		LastName:  "Doe",
@@ -19,7 +21,14 @@ func TestCreateUser(t *testing.T) {
 	emptyDBUser := database.DBUser{}
 
 	t.Run("create a user successfully", func(t *testing.T) {
-		rec := makeRequest(t, requestBody)
+		db := database.NewInMemoryDB()
+		rec := makeRequestWithBody(
+			t,
+			db,
+			http.MethodPost,
+			URL,
+			requestBody,
+		)
 
 		assertResponse(
 			t,
@@ -37,7 +46,8 @@ func TestCreateUser(t *testing.T) {
 		user := requestBody
 		user.FirstName = ""
 
-		rec := makeRequest(t, user)
+		db := database.NewInMemoryDB()
+		rec := makeRequestWithBody(t, db, http.MethodPost, URL, user)
 
 		assertResponse(
 			t,
@@ -52,7 +62,8 @@ func TestCreateUser(t *testing.T) {
 		user := requestBody
 		user.FirstName = "JohnDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoe"
 
-		rec := makeRequest(t, user)
+		db := database.NewInMemoryDB()
+		rec := makeRequestWithBody(t, db, http.MethodPost, URL, user)
 
 		assertResponse(
 			t,
@@ -67,7 +78,8 @@ func TestCreateUser(t *testing.T) {
 		user := requestBody
 		user.LastName = ""
 
-		rec := makeRequest(t, user)
+		db := database.NewInMemoryDB()
+		rec := makeRequestWithBody(t, db, http.MethodPost, URL, user)
 
 		assertResponse(
 			t,
@@ -82,7 +94,8 @@ func TestCreateUser(t *testing.T) {
 		user := requestBody
 		user.LastName = "DoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoe"
 
-		rec := makeRequest(t, user)
+		db := database.NewInMemoryDB()
+		rec := makeRequestWithBody(t, db, http.MethodPost, URL, user)
 
 		assertResponse(
 			t,
@@ -97,7 +110,8 @@ func TestCreateUser(t *testing.T) {
 		user := requestBody
 		user.Biography = ""
 
-		rec := makeRequest(t, user)
+		db := database.NewInMemoryDB()
+		rec := makeRequestWithBody(t, db, http.MethodPost, URL, user)
 
 		assertResponse(
 			t,
@@ -112,7 +126,8 @@ func TestCreateUser(t *testing.T) {
 		user := requestBody
 		user.Biography = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi ac eleifend felis, a dictum lacus. Vivamus nibh tellus, lobortis ac luctus vel, hendrerit in sapien. Pellentesque fringilla blandit interdum. Nullam at placerat dolor. Vivamus at hendrerit urna, eget interdum lorem. Curabitur a libero eget erat bibendum imperdiet. Morbi aliquet tellus id egestas vehicula.Curabitur eget elit pellentesque, ullamcorper est ut, vehicula nisi. Duis rhoncus cursus mi a convallis. Vestibulum sit amet vestibulum magna. Suspendisse posuere convallis nisi sed viverra. Sed molestie enim eget dignissim tincidunt. Curabitur eget sollicitudin dolor. In maximus dictum massa, sit amet commodo tellus. Nunc tempor sit amet libero vel tempor. Vestibulum sollicitudin risus sed augue pulvinar malesuada. Proin in tempus dolor, vel varius orci. Aliquam id nibh eu purus viverra vehicula ut."
 
-		rec := makeRequest(t, user)
+		db := database.NewInMemoryDB()
+		rec := makeRequestWithBody(t, db, http.MethodPost, URL, user)
 
 		assertResponse(
 			t,
@@ -124,21 +139,25 @@ func TestCreateUser(t *testing.T) {
 	})
 }
 
-func makeRequest(t testing.TB, user database.User) *httptest.ResponseRecorder {
+func makeRequestWithBody(
+	t testing.TB,
+	db *database.InMemoryDB,
+	method string,
+	url string,
+	body any,
+) *httptest.ResponseRecorder {
 	t.Helper()
-	payload, err := json.Marshal(user)
+	payload, err := json.Marshal(body)
 	if err != nil {
-		t.Fatalf("could not marshal the user: %v", err)
+		t.Fatalf("could not marshal the body: %v", err)
 	}
 
-	db := database.NewInMemoryDB()
-	router := NewHandler(db)
-
-	req, err := http.NewRequest(http.MethodPost, "/api/users", bytes.NewBuffer(payload))
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(payload))
 	if err != nil {
 		t.Fatalf("could not create a request: %v", err)
 	}
 
+	router := NewHandler(db)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 

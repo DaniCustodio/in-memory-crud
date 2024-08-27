@@ -1,15 +1,15 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"main/database"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
 func TestUpdateUser(t *testing.T) {
+	const URL = "/api/users/"
+
 	t.Run("update a user successfully", func(t *testing.T) {
 		db := setupDB()
 
@@ -21,10 +21,11 @@ func TestUpdateUser(t *testing.T) {
 			Biography: "updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography",
 		}
 
-		rec := makePUTRequest(
+		rec := makeRequestWithBody(
 			t,
 			db,
-			users[0].ID.String(),
+			http.MethodPut,
+			URL+users[0].ID.String(),
 			updatedUser,
 		)
 
@@ -54,10 +55,11 @@ func TestUpdateUser(t *testing.T) {
 			LastName:  "updated last name",
 		}
 
-		rec := makePUTRequest(
+		rec := makeRequestWithBody(
 			t,
 			db,
-			users[0].ID.String(),
+			http.MethodPut,
+			URL+users[0].ID.String(),
 			updatedUser,
 		)
 
@@ -84,10 +86,11 @@ func TestUpdateUser(t *testing.T) {
 			Biography: "updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography",
 		}
 
-		rec := makePUTRequest(
+		rec := makeRequestWithBody(
 			t,
 			db,
-			database.ID{}.NewID().String(),
+			http.MethodPut,
+			URL+database.ID{}.NewID().String(),
 			updatedUser,
 		)
 
@@ -104,21 +107,4 @@ func TestUpdateUser(t *testing.T) {
 			t.Fatalf("expected message to be %s, got %s", "The user with the specified ID does not exist", response.Message)
 		}
 	})
-}
-
-func makePUTRequest(t testing.TB, db *database.InMemoryDB, userID string, user database.User) *httptest.ResponseRecorder {
-	t.Helper()
-	payload, err := json.Marshal(user)
-	if err != nil {
-		t.Fatalf("could not marshal the user: %v", err)
-	}
-
-	router := NewHandler(db)
-
-	req := httptest.NewRequest(http.MethodPut, "/api/users/"+userID, bytes.NewBuffer(payload))
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	return rec
 }
