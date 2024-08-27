@@ -62,7 +62,7 @@ func TestCreateUser(t *testing.T) {
 
 		assertStatusCode(t, http.StatusBadRequest, rec.Code)
 
-		assertErrorMessage(t, "Please provide a valid FirstName, LastName and Bio for the user", response.Message)
+		assertErrorMessage(t, ErrInvalidUserParams.Error(), response.Message)
 	})
 
 	t.Run("first name length should be <= 20", func(t *testing.T) {
@@ -85,7 +85,7 @@ func TestCreateUser(t *testing.T) {
 
 		assertStatusCode(t, http.StatusBadRequest, rec.Code)
 
-		assertErrorMessage(t, "Please provide a valid FirstName, LastName and Bio for the user", response.Message)
+		assertErrorMessage(t, ErrInvalidUserParams.Error(), response.Message)
 	})
 
 	t.Run("last name length should be >= 2", func(t *testing.T) {
@@ -108,7 +108,7 @@ func TestCreateUser(t *testing.T) {
 
 		assertStatusCode(t, http.StatusBadRequest, rec.Code)
 
-		assertErrorMessage(t, "Please provide a valid FirstName, LastName and Bio for the user", response.Message)
+		assertErrorMessage(t, ErrInvalidUserParams.Error(), response.Message)
 	})
 
 	t.Run("last name length should be <= 20", func(t *testing.T) {
@@ -131,7 +131,7 @@ func TestCreateUser(t *testing.T) {
 
 		assertStatusCode(t, http.StatusBadRequest, rec.Code)
 
-		assertErrorMessage(t, "Please provide a valid FirstName, LastName and Bio for the user", response.Message)
+		assertErrorMessage(t, ErrInvalidUserParams.Error(), response.Message)
 	})
 
 	t.Run("biography length should be >= 20", func(t *testing.T) {
@@ -154,7 +154,7 @@ func TestCreateUser(t *testing.T) {
 
 		assertStatusCode(t, http.StatusBadRequest, rec.Code)
 
-		assertErrorMessage(t, "Please provide a valid FirstName, LastName and Bio for the user", response.Message)
+		assertErrorMessage(t, ErrInvalidUserParams.Error(), response.Message)
 	})
 
 	t.Run("biography length should be <= 450", func(t *testing.T) {
@@ -177,6 +177,6 @@ func TestCreateUser(t *testing.T) {
 
 		assertStatusCode(t, http.StatusBadRequest, rec.Code)
 
-		assertErrorMessage(t, "Please provide a valid FirstName, LastName and Bio for the user", response.Message)
+		assertErrorMessage(t, ErrInvalidUserParams.Error(), response.Message)
 	})
 }

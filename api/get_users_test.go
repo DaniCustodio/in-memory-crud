@@ -96,6 +96,6 @@ func TestGetUsers(t *testing.T) {
 			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		assertErrorMessage(t, "The user with the specified ID does not exist", response.Message)
+		assertErrorMessage(t, ErrUserNotFound.Error(), response.Message)
 	})
 }

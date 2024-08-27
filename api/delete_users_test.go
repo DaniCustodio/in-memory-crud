@@ -56,6 +56,6 @@ func TestDeleteUser(t *testing.T) {
 
 		assertStatusCode(t, http.StatusNotFound, rec.Code)
 
-		assertErrorMessage(t, "The user with the specified ID does not exist", response.Message)
+		assertErrorMessage(t, ErrUserNotFound.Error(), response.Message)
 	})
 }

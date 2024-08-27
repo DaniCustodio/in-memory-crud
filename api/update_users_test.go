@@ -61,7 +61,7 @@ func TestUpdateUser(t *testing.T) {
 
 		assertStatusCode(t, http.StatusBadRequest, rec.Code)
 
-		assertErrorMessage(t, "Please provide name and bio for the user", response.Message)
+		assertErrorMessage(t, ErrInvalidUpdateUserParams.Error(), response.Message)
 	})
 
 	t.Run("update a user with invalid id", func(t *testing.T) {
@@ -87,6 +87,6 @@ func TestUpdateUser(t *testing.T) {
 
 		assertStatusCode(t, http.StatusNotFound, rec.Code)
 
-		assertErrorMessage(t, "The user with the specified ID does not exist", response.Message)
+		assertErrorMessage(t, ErrUserNotFound.Error(), response.Message)
 	})
 }

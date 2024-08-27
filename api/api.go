@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"main/database"
 	"net/http"
@@ -15,6 +16,10 @@ type Response[T any] struct {
 	Message string `json:"message,omitempty"`
 	Data    T      `json:"data,omitempty"`
 }
+
+var ErrInvalidUserParams = errors.New("please provide a valid FirstName, LastName and Bio for the user")
+var ErrUserNotFound = errors.New("the user with the specified ID does not exist")
+var ErrInvalidUpdateUserParams = errors.New("please provide name and bio for the user")
 
 // WithRequiredStructEnabled: opt-in to new behavior that will become the default behavior in v11+
 var validate = validator.New(validator.WithRequiredStructEnabled())
@@ -43,7 +48,7 @@ func handleGetUser(db *database.InMemoryDB) http.HandlerFunc {
 		if !exists {
 			sendJSON(
 				w,
-				Response[any]{Message: "The user with the specified ID does not exist"},
+				Response[any]{Message: ErrUserNotFound.Error()},
 				http.StatusNotFound,
 			)
 			return
@@ -84,7 +89,7 @@ func handleCreateUser(db *database.InMemoryDB) http.HandlerFunc {
 		if err := validate.Struct(&body); err != nil {
 			sendJSON(
 				w,
-				Response[any]{Message: "Please provide a valid FirstName, LastName and Bio for the user"},
+				Response[any]{Message: ErrInvalidUserParams.Error()},
 				http.StatusBadRequest,
 			)
 			return
@@ -114,7 +119,7 @@ func handleDeleteUser(db *database.InMemoryDB) http.HandlerFunc {
 		if err != nil {
 			sendJSON(
 				w,
-				Response[any]{Message: "The user with the specified ID does not exist"},
+				Response[any]{Message: ErrUserNotFound.Error()},
 				http.StatusNotFound,
 			)
 		}
@@ -144,7 +149,7 @@ func handleUpdateUser(db *database.InMemoryDB) http.HandlerFunc {
 		if err := validate.Struct(&body); err != nil {
 			sendJSON(
 				w,
-				Response[any]{Message: "Please provide name and bio for the user"},
+				Response[any]{Message: ErrInvalidUpdateUserParams.Error()},
 				http.StatusBadRequest,
 			)
 			return
@@ -154,7 +159,7 @@ func handleUpdateUser(db *database.InMemoryDB) http.HandlerFunc {
 		if err != nil {
 			sendJSON(
 				w,
-				Response[database.DBUser]{Message: "The user with the specified ID does not exist"},
+				Response[database.DBUser]{Message: ErrUserNotFound.Error()},
 				http.StatusNotFound,
 			)
 			return
