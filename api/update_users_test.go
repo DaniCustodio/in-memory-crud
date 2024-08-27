@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"main/database"
 	"net/http"
 	"testing"
@@ -28,19 +27,15 @@ func TestUpdateUser(t *testing.T) {
 
 		rec := makeRequest(db, req)
 
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode response: %v", err)
+		response, err := parseResponse[database.DBUser](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		if rec.Code != http.StatusOK {
-			t.Errorf("expected status code %d, got %d", http.StatusOK, rec.Code)
-		}
+		assertStatusCode(t, http.StatusOK, rec.Code)
 
-		got := parseData[database.DBUser](t, response.Data)
-
-		if got.ID != users[0].ID {
-			t.Errorf("expected id %d, got %d", users[0].ID, got.ID)
+		if response.Data.ID != users[0].ID {
+			t.Errorf("expected id %d, got %d", users[0].ID, response.Data.ID)
 		}
 	})
 
@@ -61,18 +56,14 @@ func TestUpdateUser(t *testing.T) {
 
 		rec := makeRequest(db, req)
 
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode response: %v", err)
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		if rec.Code != http.StatusBadRequest {
-			t.Errorf("expected status code %d, got %d", http.StatusOK, rec.Code)
-		}
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
 
-		if response.Message != "Please provide name and bio for the user" {
-			t.Fatalf("expected message to be %s, got %s", "Please provide name and bio for the user", response.Message)
-		}
+		assertErrorMessage(t, "Please provide name and bio for the user", response.Message)
 	})
 
 	t.Run("update a user with invalid id", func(t *testing.T) {
@@ -91,17 +82,13 @@ func TestUpdateUser(t *testing.T) {
 
 		rec := makeRequest(db, req)
 
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode response: %v", err)
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		if rec.Code != http.StatusNotFound {
-			t.Errorf("expected status code %d, got %d", http.StatusOK, rec.Code)
-		}
+		assertStatusCode(t, http.StatusNotFound, rec.Code)
 
-		if response.Message != "The user with the specified ID does not exist" {
-			t.Fatalf("expected message to be %s, got %s", "The user with the specified ID does not exist", response.Message)
-		}
+		assertErrorMessage(t, "The user with the specified ID does not exist", response.Message)
 	})
 }

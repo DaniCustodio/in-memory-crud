@@ -19,8 +19,6 @@ func TestCreateUser(t *testing.T) {
 		Biography: "A regular guy who loves to code in Go and JavaScript",
 	}
 
-	emptyDBUser := database.DBUser{}
-
 	t.Run("create a user successfully", func(t *testing.T) {
 		db := database.NewInMemoryDB()
 
@@ -31,15 +29,20 @@ func TestCreateUser(t *testing.T) {
 
 		rec := makeRequest(db, req)
 
-		assertResponse(
+		response, err := parseResponse[database.DBUser](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusCreated, rec.Code)
+
+		assertUser(
 			t,
-			rec,
-			http.StatusCreated,
-			"",
 			database.DBUser{
 				ID:   database.ID{}.NewID(),
 				User: requestBody,
 			},
+			response.Data,
 		)
 	})
 
@@ -56,13 +59,14 @@ func TestCreateUser(t *testing.T) {
 
 		rec := makeRequest(db, req)
 
-		assertResponse(
-			t,
-			rec,
-			http.StatusBadRequest,
-			"Please provide a valid FirstName, LastName and Bio for the user",
-			emptyDBUser,
-		)
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, "Please provide a valid FirstName, LastName and Bio for the user", response.Message)
 	})
 
 	t.Run("first name length should be <= 20", func(t *testing.T) {
@@ -78,13 +82,14 @@ func TestCreateUser(t *testing.T) {
 
 		rec := makeRequest(db, req)
 
-		assertResponse(
-			t,
-			rec,
-			http.StatusBadRequest,
-			"Please provide a valid FirstName, LastName and Bio for the user",
-			emptyDBUser,
-		)
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, "Please provide a valid FirstName, LastName and Bio for the user", response.Message)
 	})
 
 	t.Run("last name length should be >= 2", func(t *testing.T) {
@@ -100,13 +105,14 @@ func TestCreateUser(t *testing.T) {
 
 		rec := makeRequest(db, req)
 
-		assertResponse(
-			t,
-			rec,
-			http.StatusBadRequest,
-			"Please provide a valid FirstName, LastName and Bio for the user",
-			emptyDBUser,
-		)
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, "Please provide a valid FirstName, LastName and Bio for the user", response.Message)
 	})
 
 	t.Run("last name length should be <= 20", func(t *testing.T) {
@@ -122,13 +128,14 @@ func TestCreateUser(t *testing.T) {
 
 		rec := makeRequest(db, req)
 
-		assertResponse(
-			t,
-			rec,
-			http.StatusBadRequest,
-			"Please provide a valid FirstName, LastName and Bio for the user",
-			emptyDBUser,
-		)
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, "Please provide a valid FirstName, LastName and Bio for the user", response.Message)
 	})
 
 	t.Run("biography length should be >= 20", func(t *testing.T) {
@@ -144,13 +151,14 @@ func TestCreateUser(t *testing.T) {
 
 		rec := makeRequest(db, req)
 
-		assertResponse(
-			t,
-			rec,
-			http.StatusBadRequest,
-			"Please provide a valid FirstName, LastName and Bio for the user",
-			emptyDBUser,
-		)
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, "Please provide a valid FirstName, LastName and Bio for the user", response.Message)
 	})
 
 	t.Run("biography length should be <= 450", func(t *testing.T) {
@@ -166,13 +174,14 @@ func TestCreateUser(t *testing.T) {
 
 		rec := makeRequest(db, req)
 
-		assertResponse(
-			t,
-			rec,
-			http.StatusBadRequest,
-			"Please provide a valid FirstName, LastName and Bio for the user",
-			emptyDBUser,
-		)
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
+		}
+
+		assertStatusCode(t, http.StatusBadRequest, rec.Code)
+
+		assertErrorMessage(t, "Please provide a valid FirstName, LastName and Bio for the user", response.Message)
 	})
 }
 
@@ -198,43 +207,51 @@ func makeRequest(db *database.InMemoryDB, request *http.Request) *httptest.Respo
 	return rec
 }
 
-func assertResponse(
-	t testing.TB,
-	resp *httptest.ResponseRecorder,
-	expectedStatus int,
-	expectedMessage string,
-	expectedData database.DBUser,
-) {
+func assertStatusCode(t testing.TB, want int, got int) {
 	t.Helper()
-	var response Response
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		t.Fatalf("could not decode the response: %v", err)
+
+	if got != want {
+		t.Errorf("expected status code %d, got %d", want, got)
+	}
+}
+
+func assertErrorMessage(t testing.TB, want string, got string) {
+	t.Helper()
+
+	if got != want {
+		t.Errorf("expected error message %q, got %q", want, got)
+	}
+}
+
+func assertUser(t testing.TB, want database.DBUser, got database.DBUser) {
+	t.Helper()
+
+	if got.ID.IsEmpty() ||
+		got.User.FirstName != want.User.FirstName ||
+		got.User.LastName != want.User.LastName ||
+		got.User.Biography != want.User.Biography {
+		t.Errorf("expected user %v, got %v", want, got)
+	}
+}
+
+func parseResponse[T any](response *httptest.ResponseRecorder) (Response[T], error) {
+	var parsedResponse Response[T]
+	if err := json.NewDecoder(response.Body).Decode(&parsedResponse); err != nil {
+		return Response[T]{}, fmt.Errorf("could not decode the response: %w", err)
 	}
 
-	if resp.Code != expectedStatus {
-		t.Errorf("expected status %d; got %d", expectedStatus, resp.Code)
+	var parsedData T
+
+	bytes, err := json.Marshal(parsedResponse.Data)
+	if err != nil {
+		return Response[T]{}, fmt.Errorf("could not marshal the data: %w", err)
 	}
 
-	if response.Message != expectedMessage {
-		t.Errorf("expected message %q; got %q", expectedMessage, response.Message)
+	if err := json.Unmarshal(bytes, &parsedData); err != nil {
+		return Response[T]{}, fmt.Errorf("could not unmarshal the data: %w", err)
 	}
 
-	if !expectedData.IsEmpty() {
-		dataBytes, err := json.Marshal(response.Data)
-		if err != nil {
-			t.Fatalf("could not marshal the data: %v", err)
-		}
+	parsedResponse.Data = parsedData
 
-		var got database.DBUser
-		if err := json.Unmarshal(dataBytes, &got); err != nil {
-			t.Fatalf("could not unmarshal the user: %v", err)
-		}
-
-		if got.ID.IsEmpty() ||
-			got.User.FirstName != expectedData.User.FirstName ||
-			got.User.LastName != expectedData.User.LastName ||
-			got.User.Biography != expectedData.User.Biography {
-			t.Errorf("expected user %v; got %v", expectedData, got)
-		}
-	}
+	return parsedResponse, nil
 }

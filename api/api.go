@@ -11,9 +11,9 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type Response struct {
+type Response[T any] struct {
 	Message string `json:"message,omitempty"`
-	Data    any    `json:"data,omitempty"`
+	Data    T      `json:"data,omitempty"`
 }
 
 // WithRequiredStructEnabled: opt-in to new behavior that will become the default behavior in v11+
@@ -43,7 +43,7 @@ func handleGetUser(db *database.InMemoryDB) http.HandlerFunc {
 		if !exists {
 			sendJSON(
 				w,
-				Response{Message: "The user with the specified ID does not exist"},
+				Response[any]{Message: "The user with the specified ID does not exist"},
 				http.StatusNotFound,
 			)
 			return
@@ -51,7 +51,7 @@ func handleGetUser(db *database.InMemoryDB) http.HandlerFunc {
 
 		sendJSON(
 			w,
-			Response{Data: user},
+			Response[database.DBUser]{Data: user},
 			http.StatusOK,
 		)
 	}
@@ -63,7 +63,7 @@ func handleGetUsers(db *database.InMemoryDB) http.HandlerFunc {
 
 		sendJSON(
 			w,
-			Response{Data: users},
+			Response[[]database.DBUser]{Data: users},
 			http.StatusOK,
 		)
 	}
@@ -75,7 +75,7 @@ func handleCreateUser(db *database.InMemoryDB) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			sendJSON(
 				w,
-				Response{Message: "could not decode the request"},
+				Response[any]{Message: "could not decode the request"},
 				http.StatusBadRequest,
 			)
 			return
@@ -84,7 +84,7 @@ func handleCreateUser(db *database.InMemoryDB) http.HandlerFunc {
 		if err := validate.Struct(&body); err != nil {
 			sendJSON(
 				w,
-				Response{Message: "Please provide a valid FirstName, LastName and Bio for the user"},
+				Response[any]{Message: "Please provide a valid FirstName, LastName and Bio for the user"},
 				http.StatusBadRequest,
 			)
 			return
@@ -100,7 +100,7 @@ func handleCreateUser(db *database.InMemoryDB) http.HandlerFunc {
 
 		sendJSON(
 			w,
-			Response{Data: dbUser},
+			Response[database.DBUser]{Data: dbUser},
 			http.StatusCreated,
 		)
 	}
@@ -114,14 +114,14 @@ func handleDeleteUser(db *database.InMemoryDB) http.HandlerFunc {
 		if err != nil {
 			sendJSON(
 				w,
-				Response{Message: "The user with the specified ID does not exist"},
+				Response[any]{Message: "The user with the specified ID does not exist"},
 				http.StatusNotFound,
 			)
 		}
 
 		sendJSON(
 			w,
-			Response{Data: user},
+			Response[database.DBUser]{Data: user},
 			http.StatusOK,
 		)
 	}
@@ -135,7 +135,7 @@ func handleUpdateUser(db *database.InMemoryDB) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			sendJSON(
 				w,
-				Response{Message: "could not decode the request"},
+				Response[any]{Message: "could not decode the request"},
 				http.StatusBadRequest,
 			)
 			return
@@ -144,7 +144,7 @@ func handleUpdateUser(db *database.InMemoryDB) http.HandlerFunc {
 		if err := validate.Struct(&body); err != nil {
 			sendJSON(
 				w,
-				Response{Message: "Please provide name and bio for the user"},
+				Response[any]{Message: "Please provide name and bio for the user"},
 				http.StatusBadRequest,
 			)
 			return
@@ -154,7 +154,7 @@ func handleUpdateUser(db *database.InMemoryDB) http.HandlerFunc {
 		if err != nil {
 			sendJSON(
 				w,
-				Response{Message: "The user with the specified ID does not exist"},
+				Response[database.DBUser]{Message: "The user with the specified ID does not exist"},
 				http.StatusNotFound,
 			)
 			return
@@ -162,13 +162,13 @@ func handleUpdateUser(db *database.InMemoryDB) http.HandlerFunc {
 
 		sendJSON(
 			w,
-			Response{Data: user},
+			Response[database.DBUser]{Data: user},
 			http.StatusOK,
 		)
 	}
 }
 
-func sendJSON(w http.ResponseWriter, resp Response, status int) {
+func sendJSON[T any](w http.ResponseWriter, resp Response[T], status int) {
 	w.Header().Set("Content-Type", "application/json")
 
 	data, err := json.Marshal(resp)
@@ -176,7 +176,7 @@ func sendJSON(w http.ResponseWriter, resp Response, status int) {
 		slog.Error("could not marshal the response", "error", err)
 		sendJSON(
 			w,
-			Response{Message: "internal server error"},
+			Response[any]{Message: "internal server error"},
 			http.StatusInternalServerError,
 		)
 		return

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"main/database"
 	"net/http"
 	"net/http/httptest"
@@ -16,19 +15,15 @@ func TestDeleteUser(t *testing.T) {
 
 		rec := makeDeleteRequest(db, users[0].ID.String())
 
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode the response: %v", err)
+		response, err := parseResponse[database.DBUser](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		if rec.Code != http.StatusOK {
-			t.Fatalf("expected status code to be %d, got %d", http.StatusOK, rec.Code)
-		}
+		assertStatusCode(t, http.StatusOK, rec.Code)
 
-		got := parseData[database.DBUser](t, response.Data)
-
-		if got.ID != users[0].ID {
-			t.Fatalf("expected user id to be %s, got %s", users[0].ID, got.ID)
+		if response.Data.ID != users[0].ID {
+			t.Fatalf("expected user id to be %s, got %s", users[0].ID, response.Data.ID)
 		}
 	})
 
@@ -37,18 +32,14 @@ func TestDeleteUser(t *testing.T) {
 
 		rec := makeDeleteRequest(db, database.ID{}.NewID().String())
 
-		var response Response
-		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-			t.Fatalf("could not decode the response: %v", err)
+		response, err := parseResponse[any](rec)
+		if err != nil {
+			t.Fatalf("could not parse the response: %v", err)
 		}
 
-		if rec.Code != http.StatusNotFound {
-			t.Fatalf("expected status code to be %d, got %d", http.StatusNotFound, rec.Code)
-		}
+		assertStatusCode(t, http.StatusNotFound, rec.Code)
 
-		if response.Message != "The user with the specified ID does not exist" {
-			t.Fatalf("expected message to be %s, got %s", "The user with the specified ID does not exist", response.Message)
-		}
+		assertErrorMessage(t, "The user with the specified ID does not exist", response.Message)
 	})
 }
 
