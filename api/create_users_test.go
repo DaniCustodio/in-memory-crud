@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/google/uuid"
 )
 
 func TestCreateUser(t *testing.T) {
@@ -29,7 +27,7 @@ func TestCreateUser(t *testing.T) {
 			http.StatusCreated,
 			"",
 			database.DBUser{
-				ID:   database.ID(uuid.New()),
+				ID:   database.ID{}.NewID(),
 				User: requestBody,
 			},
 		)
@@ -179,7 +177,7 @@ func assertResponse(
 			t.Fatalf("could not unmarshal the user: %v", err)
 		}
 
-		if got.ID == database.ID(uuid.Nil) ||
+		if got.ID.IsEmpty() ||
 			got.User.FirstName != expectedData.User.FirstName ||
 			got.User.LastName != expectedData.User.LastName ||
 			got.User.Biography != expectedData.User.Biography {
