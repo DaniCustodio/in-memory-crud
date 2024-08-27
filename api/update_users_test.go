@@ -21,13 +21,12 @@ func TestUpdateUser(t *testing.T) {
 			Biography: "updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography",
 		}
 
-		rec := makeRequestWithBody(
-			t,
-			db,
-			http.MethodPut,
-			URL+users[0].ID.String(),
-			updatedUser,
-		)
+		req, err := createRequest(http.MethodPut, URL+users[0].ID.String(), updatedUser)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
 
 		var response Response
 		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
@@ -55,13 +54,12 @@ func TestUpdateUser(t *testing.T) {
 			LastName:  "updated last name",
 		}
 
-		rec := makeRequestWithBody(
-			t,
-			db,
-			http.MethodPut,
-			URL+users[0].ID.String(),
-			updatedUser,
-		)
+		req, err := createRequest(http.MethodPut, URL+users[0].ID.String(), updatedUser)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
 
 		var response Response
 		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
@@ -86,13 +84,12 @@ func TestUpdateUser(t *testing.T) {
 			Biography: "updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography updated biography",
 		}
 
-		rec := makeRequestWithBody(
-			t,
-			db,
-			http.MethodPut,
-			URL+database.ID{}.NewID().String(),
-			updatedUser,
-		)
+		req, err := createRequest(http.MethodPut, URL+database.ID{}.NewID().String(), updatedUser)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
 
 		var response Response
 		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {

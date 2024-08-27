@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"main/database"
 	"net/http"
 	"net/http/httptest"
@@ -22,13 +23,13 @@ func TestCreateUser(t *testing.T) {
 
 	t.Run("create a user successfully", func(t *testing.T) {
 		db := database.NewInMemoryDB()
-		rec := makeRequestWithBody(
-			t,
-			db,
-			http.MethodPost,
-			URL,
-			requestBody,
-		)
+
+		req, err := createRequest(http.MethodPost, URL, requestBody)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
 
 		assertResponse(
 			t,
@@ -47,7 +48,13 @@ func TestCreateUser(t *testing.T) {
 		user.FirstName = ""
 
 		db := database.NewInMemoryDB()
-		rec := makeRequestWithBody(t, db, http.MethodPost, URL, user)
+
+		req, err := createRequest(http.MethodPost, URL, user)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
 
 		assertResponse(
 			t,
@@ -63,7 +70,13 @@ func TestCreateUser(t *testing.T) {
 		user.FirstName = "JohnDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoe"
 
 		db := database.NewInMemoryDB()
-		rec := makeRequestWithBody(t, db, http.MethodPost, URL, user)
+
+		req, err := createRequest(http.MethodPost, URL, user)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
 
 		assertResponse(
 			t,
@@ -79,7 +92,13 @@ func TestCreateUser(t *testing.T) {
 		user.LastName = ""
 
 		db := database.NewInMemoryDB()
-		rec := makeRequestWithBody(t, db, http.MethodPost, URL, user)
+
+		req, err := createRequest(http.MethodPost, URL, user)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
 
 		assertResponse(
 			t,
@@ -95,7 +114,13 @@ func TestCreateUser(t *testing.T) {
 		user.LastName = "DoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoeDoe"
 
 		db := database.NewInMemoryDB()
-		rec := makeRequestWithBody(t, db, http.MethodPost, URL, user)
+
+		req, err := createRequest(http.MethodPost, URL, user)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
 
 		assertResponse(
 			t,
@@ -111,7 +136,13 @@ func TestCreateUser(t *testing.T) {
 		user.Biography = ""
 
 		db := database.NewInMemoryDB()
-		rec := makeRequestWithBody(t, db, http.MethodPost, URL, user)
+
+		req, err := createRequest(http.MethodPost, URL, user)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
 
 		assertResponse(
 			t,
@@ -127,7 +158,13 @@ func TestCreateUser(t *testing.T) {
 		user.Biography = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi ac eleifend felis, a dictum lacus. Vivamus nibh tellus, lobortis ac luctus vel, hendrerit in sapien. Pellentesque fringilla blandit interdum. Nullam at placerat dolor. Vivamus at hendrerit urna, eget interdum lorem. Curabitur a libero eget erat bibendum imperdiet. Morbi aliquet tellus id egestas vehicula.Curabitur eget elit pellentesque, ullamcorper est ut, vehicula nisi. Duis rhoncus cursus mi a convallis. Vestibulum sit amet vestibulum magna. Suspendisse posuere convallis nisi sed viverra. Sed molestie enim eget dignissim tincidunt. Curabitur eget sollicitudin dolor. In maximus dictum massa, sit amet commodo tellus. Nunc tempor sit amet libero vel tempor. Vestibulum sollicitudin risus sed augue pulvinar malesuada. Proin in tempus dolor, vel varius orci. Aliquam id nibh eu purus viverra vehicula ut."
 
 		db := database.NewInMemoryDB()
-		rec := makeRequestWithBody(t, db, http.MethodPost, URL, user)
+
+		req, err := createRequest(http.MethodPost, URL, user)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rec := makeRequest(db, req)
 
 		assertResponse(
 			t,
@@ -139,27 +176,24 @@ func TestCreateUser(t *testing.T) {
 	})
 }
 
-func makeRequestWithBody(
-	t testing.TB,
-	db *database.InMemoryDB,
-	method string,
-	url string,
-	body any,
-) *httptest.ResponseRecorder {
-	t.Helper()
+func createRequest(method string, url string, body any) (*http.Request, error) {
 	payload, err := json.Marshal(body)
 	if err != nil {
-		t.Fatalf("could not marshal the body: %v", err)
+		return nil, fmt.Errorf("could not marshal the body: %w", err)
 	}
 
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(payload))
 	if err != nil {
-		t.Fatalf("could not create a request: %v", err)
+		return nil, fmt.Errorf("could not create a request: %w", err)
 	}
 
+	return req, nil
+}
+
+func makeRequest(db *database.InMemoryDB, request *http.Request) *httptest.ResponseRecorder {
 	router := NewHandler(db)
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
+	router.ServeHTTP(rec, request)
 
 	return rec
 }
