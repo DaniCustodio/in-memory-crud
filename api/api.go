@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type Response[T any] struct {
@@ -37,9 +38,24 @@ func NewHandler(db *database.InMemoryDB) http.Handler {
 	router.Delete("/api/users/{id}", handleDeleteUser(db))
 	router.Put("/api/users/{id}", handleUpdateUser(db))
 
+	router.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
+
 	return router
 }
 
+// GetUser godoc
+//
+//	@Summary		Get a user by ID
+//	@Description	Get a user by ID
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"User ID"
+//	@Success		200	{object}	Response[database.DBUser]{data=database.DBUser}
+//	@Failure		404	{object}	Response[any]{message=string}
+//	@Router			/users/{id} [get]
 func handleGetUser(db *database.InMemoryDB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
@@ -62,6 +78,15 @@ func handleGetUser(db *database.InMemoryDB) http.HandlerFunc {
 	}
 }
 
+// GetUsers godoc
+//
+//	@Summary		Get all users
+//	@Description	Get all users
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	Response[[]database.DBUser]{data=[]database.DBUser}
+//	@Router			/users [get]
 func handleGetUsers(db *database.InMemoryDB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		users := db.FindAll()
@@ -74,6 +99,17 @@ func handleGetUsers(db *database.InMemoryDB) http.HandlerFunc {
 	}
 }
 
+// CreateUser godoc
+//
+//	@Summary		Create a user
+//	@Description	Create a user
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		database.User	true	"User details"
+//	@Success		201		{object}	Response[database.DBUser]{data=database.DBUser}
+//	@Failure		400		{object}	Response[any]{message=string}
+//	@Router			/users [post]
 func handleCreateUser(db *database.InMemoryDB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body database.User
@@ -111,6 +147,17 @@ func handleCreateUser(db *database.InMemoryDB) http.HandlerFunc {
 	}
 }
 
+// DeleteUser godoc
+//
+//	@Summary		Delete a user by ID
+//	@Description	Delete a user by ID
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"User ID"
+//	@Success		200	{object}	Response[database.DBUser]{data=database.DBUser}
+//	@Failure		404	{object}	Response[any]{message=string}
+//	@Router			/users/{id} [delete]
 func handleDeleteUser(db *database.InMemoryDB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
@@ -132,6 +179,19 @@ func handleDeleteUser(db *database.InMemoryDB) http.HandlerFunc {
 	}
 }
 
+// UpdateUser godoc
+//
+//	@Summary		Update a user by ID
+//	@Description	Update a user by ID
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string			true	"User ID"
+//	@Param			body	body		database.User	true	"User details"
+//	@Success		200		{object}	Response[database.DBUser]{data=database.DBUser}
+//	@Failure		400		{object}	Response[any]{message=string}
+//	@Failure		404		{object}	Response[any]{message=string}
+//	@Router			/users/{id} [put]
 func handleUpdateUser(db *database.InMemoryDB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")

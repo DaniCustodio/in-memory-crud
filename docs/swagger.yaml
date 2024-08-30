@@ -1,0 +1,233 @@
+basePath: /api
+definitions:
+  api.Response-any:
+    properties:
+      data: {}
+      message:
+        type: string
+    type: object
+  api.Response-array_database_DBUser:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/database.DBUser'
+        type: array
+      message:
+        type: string
+    type: object
+  api.Response-database_DBUser:
+    properties:
+      data:
+        $ref: '#/definitions/database.DBUser'
+      message:
+        type: string
+    type: object
+  database.DBUser:
+    properties:
+      id:
+        type: string
+      user:
+        $ref: '#/definitions/database.User'
+    type: object
+  database.User:
+    properties:
+      biography:
+        maxLength: 450
+        minLength: 20
+        type: string
+      first_name:
+        maxLength: 20
+        minLength: 2
+        type: string
+      last_name:
+        maxLength: 20
+        minLength: 2
+        type: string
+    required:
+    - biography
+    - first_name
+    - last_name
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: A simple CRUD API for managing users in memory
+  title: In Memory CRUD
+  version: "1.0"
+paths:
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Get all users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response-array_database_DBUser'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/database.DBUser'
+                  type: array
+              type: object
+      summary: Get all users
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: Create a user
+      parameters:
+      - description: User details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/database.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response-database_DBUser'
+            - properties:
+                data:
+                  $ref: '#/definitions/database.DBUser'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response-any'
+            - properties:
+                message:
+                  type: string
+              type: object
+      summary: Create a user
+      tags:
+      - Users
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response-database_DBUser'
+            - properties:
+                data:
+                  $ref: '#/definitions/database.DBUser'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response-any'
+            - properties:
+                message:
+                  type: string
+              type: object
+      summary: Delete a user by ID
+      tags:
+      - Users
+    get:
+      consumes:
+      - application/json
+      description: Get a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response-database_DBUser'
+            - properties:
+                data:
+                  $ref: '#/definitions/database.DBUser'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response-any'
+            - properties:
+                message:
+                  type: string
+              type: object
+      summary: Get a user by ID
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Update a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/database.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response-database_DBUser'
+            - properties:
+                data:
+                  $ref: '#/definitions/database.DBUser'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response-any'
+            - properties:
+                message:
+                  type: string
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response-any'
+            - properties:
+                message:
+                  type: string
+              type: object
+      summary: Update a user by ID
+      tags:
+      - Users
+swagger: "2.0"
